@@ -74,7 +74,7 @@ async def generate_speech(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    model_size = (data.model_size or "1.7B") if engine_has_model_sizes(engine) else None
+    model_size = "external" if engine == "gpt_sovits" else ((data.model_size or "1.7B") if engine_has_model_sizes(engine) else None)
 
     text = data.text
     source = "manual"
@@ -100,7 +100,7 @@ async def generate_speech(
         generation_id=generation_id,
         status="generating",
         engine=engine,
-        model_size=model_size if engine_has_model_sizes(engine) else None,
+        model_size=model_size if (engine_has_model_sizes(engine) or engine == "gpt_sovits") else None,
         source=source,
     )
 
