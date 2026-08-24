@@ -26,8 +26,6 @@ from ..database import get_db
 from ..utils.tasks import get_task_manager
 
 
-
-
 def _configure_external_tts_backend(tts_model, engine: str, db) -> None:
     """Apply persisted connection settings to external/sidecar engines."""
     if engine != "gpt_sovits":
@@ -36,6 +34,7 @@ def _configure_external_tts_backend(tts_model, engine: str, db) -> None:
 
     generation_settings = settings_service.get_generation_settings(db)
     tts_model.set_base_url(generation_settings.gpt_sovits_url)
+
 
 async def run_generation(
     *,
