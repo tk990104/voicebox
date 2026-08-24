@@ -34,3 +34,25 @@ async def update_generation_settings_endpoint(
     db: Session = Depends(get_db),
 ):
     return settings_service.update_generation_settings(db, patch.model_dump(exclude_unset=True))
+
+
+@router.get("/gpt-sovits/health")
+async def get_gpt_sovits_health_endpoint(db: Session = Depends(get_db)):
+    """Check the configured local GPT-SoVITS sidecar without generating audio."""
+    from ..backends.gpt_sovits_backend import GPTSoVITSBackend
+
+    generation_settings = settings_service.get_generation_settings(db)
+    backend = GPTSoVITSBackend(base_url=generation_settings.gpt_sovits_url)
+    try:
+        await backend.load_model("external")
+    except RuntimeError as exc:
+        return {
+            "connected": False,
+            "url": generation_settings.gpt_sovits_url,
+            "detail": str(exc),
+        }
+    return {
+        "connected": True,
+        "url": generation_settings.gpt_sovits_url,
+        "detail": "GPT-SoVITS sidecar is reachable.",
+    }
