@@ -333,7 +333,13 @@ async def stream_speech(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     tts_model = get_tts_backend_for_engine(engine)
-    model_size = data.model_size or "1.7B"
+    model_size = "external" if engine == "gpt_sovits" else (data.model_size or "1.7B")
+
+    if engine == "gpt_sovits":
+        from ..services import settings as settings_service
+
+        generation_settings = settings_service.get_generation_settings(db)
+        tts_model.set_base_url(generation_settings.gpt_sovits_url)
 
     await ensure_model_cached_or_raise(engine, model_size)
     await load_engine_model(engine, model_size)
