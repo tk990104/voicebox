@@ -16,6 +16,17 @@ import { useServerStore } from '@/stores/serverStore';
 import { formatDate } from '@/lib/utils/format';
 import { SettingRow, SettingSection } from './SettingRow';
 
+const MCP_ENGINE_OPTIONS = [
+  { value: 'qwen', label: 'Qwen3-TTS' },
+  { value: 'qwen_custom_voice', label: 'Qwen CustomVoice' },
+  { value: 'luxtts', label: 'LuxTTS' },
+  { value: 'chatterbox', label: 'Chatterbox' },
+  { value: 'chatterbox_turbo', label: 'Chatterbox Turbo' },
+  { value: 'tada', label: 'TADA' },
+  { value: 'kokoro', label: 'Kokoro' },
+  { value: 'gpt_sovits', label: 'GPT-SoVITS (Local)' },
+] as const;
+
 function getStdioShimCommand(): string {
   if (typeof navigator === 'undefined') {
     return '/Applications/Voicebox.app/Contents/MacOS/voicebox-mcp';
@@ -50,6 +61,7 @@ export function MCPPage() {
   const [newClientId, setNewClientId] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [newProfileId, setNewProfileId] = useState('');
+  const [newEngine, setNewEngine] = useState('');
   const [adding, setAdding] = useState(false);
 
   const handleAdd = async () => {
@@ -60,10 +72,12 @@ export function MCPPage() {
         client_id: newClientId.trim(),
         label: newLabel.trim() || null,
         profile_id: newProfileId || null,
+        default_engine: newEngine || null,
       });
       setNewClientId('');
       setNewLabel('');
       setNewProfileId('');
+      setNewEngine('');
     } finally {
       setAdding(false);
     }
@@ -162,7 +176,7 @@ export function MCPPage() {
               {bindings.map((b) => (
                 <div
                   key={b.client_id}
-                  className="py-3 grid grid-cols-[1fr_auto_auto] gap-4 items-center"
+                  className="py-3 grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center"
                 >
                   <div className="min-w-0">
                     <div className="font-medium text-sm truncate">
@@ -188,6 +202,8 @@ export function MCPPage() {
                         client_id: b.client_id,
                         label: b.label,
                         profile_id: v === '__default__' ? null : v,
+                        default_engine: b.default_engine,
+                        default_personality: b.default_personality,
                       })
                     }
                   >
@@ -201,6 +217,30 @@ export function MCPPage() {
                       {(profiles ?? []).map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={b.default_engine ?? '__profile__'}
+                    onValueChange={(v) =>
+                      upsertAsync({
+                        client_id: b.client_id,
+                        label: b.label,
+                        profile_id: b.profile_id,
+                        default_engine: v === '__profile__' ? null : v,
+                        default_personality: b.default_personality,
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-[170px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__profile__">Profile default</SelectItem>
+                      {MCP_ENGINE_OPTIONS.map((engine) => (
+                        <SelectItem key={engine.value} value={engine.value}>
+                          {engine.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -220,7 +260,7 @@ export function MCPPage() {
 
           <div className="pt-4 space-y-2">
             <div className="text-sm font-medium">{t('settings.mcp.bindings.add.title')}</div>
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+            <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-2">
               <input
                 type="text"
                 placeholder={t('settings.mcp.bindings.add.clientIdPlaceholder')}
@@ -249,6 +289,22 @@ export function MCPPage() {
                   {(profiles ?? []).map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={newEngine || '__profile__'}
+                onValueChange={(v) => setNewEngine(v === '__profile__' ? '' : v)}
+              >
+                <SelectTrigger className="h-9 min-w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__profile__">Profile default</SelectItem>
+                  {MCP_ENGINE_OPTIONS.map((engine) => (
+                    <SelectItem key={engine.value} value={engine.value}>
+                      {engine.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

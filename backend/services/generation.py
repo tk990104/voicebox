@@ -26,6 +26,16 @@ from ..database import get_db
 from ..utils.tasks import get_task_manager
 
 
+def _configure_external_tts_backend(tts_model, engine: str, db) -> None:
+    """Apply persisted connection settings to external/sidecar engines."""
+    if engine != "gpt_sovits":
+        return
+    from . import settings as settings_service
+
+    generation_settings = settings_service.get_generation_settings(db)
+    tts_model.set_base_url(generation_settings.gpt_sovits_url)
+
+
 async def run_generation(
     *,
     generation_id: str,
@@ -57,6 +67,7 @@ async def run_generation(
 
     try:
         tts_model = get_tts_backend_for_engine(engine)
+        _configure_external_tts_backend(tts_model, engine, bg_db)
 
         if not tts_model.is_loaded():
             await history.update_generation_status(generation_id, "loading_model", bg_db)
@@ -275,6 +286,7 @@ async def generate_audio_sync(
     bg_db = next(get_db())
     try:
         tts_model = get_tts_backend_for_engine(engine)
+        _configure_external_tts_backend(tts_model, engine, bg_db)
         await load_engine_model(engine, model_size)
 
         voice_prompt = await profiles.create_voice_prompt_for_profile(

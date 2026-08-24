@@ -1,9 +1,11 @@
-import { FolderOpen, Languages, Mic, Zap } from 'lucide-react';
+import { CheckCircle2, CircleAlert, FolderOpen, Languages, Mic, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Toggle } from '@/components/ui/toggle';
+import { apiClient } from '@/lib/api/client';
 import { useGenerationSettings } from '@/lib/hooks/useSettings';
 import { usePlatform } from '@/platform/PlatformContext';
 import { useServerStore } from '@/stores/serverStore';
@@ -18,6 +20,7 @@ export function GenerationPage() {
   const persistedCrossfadeMs = settings?.crossfade_ms ?? 50;
   const normalizeAudio = settings?.normalize_audio ?? true;
   const autoplayOnGenerate = settings?.autoplay_on_generate ?? true;
+  const persistedGptSoVitsUrl = settings?.gpt_sovits_url ?? 'http://127.0.0.1:9880';
   // Slider mirrors persist on commit (pointer-up / keyboard-release) only —
   // onValueChange would fire a PATCH for every pointer-move pixel and round-
   // trip mid-drag failures could leave persisted state out of sync with UI.
@@ -27,6 +30,14 @@ export function GenerationPage() {
   useEffect(() => setCrossfadeMs(persistedCrossfadeMs), [persistedCrossfadeMs]);
   const [opening, setOpening] = useState(false);
   const [generationsPath, setGenerationsPath] = useState<string | null>(null);
+  const [gptSoVitsUrl, setGptSoVitsUrl] = useState(persistedGptSoVitsUrl);
+  const [checkingGptSoVits, setCheckingGptSoVits] = useState(false);
+  const [gptSoVitsStatus, setGptSoVitsStatus] = useState<{
+    connected: boolean;
+    detail: string;
+  } | null>(null);
+
+  useEffect(() => setGptSoVitsUrl(persistedGptSoVitsUrl), [persistedGptSoVitsUrl]);
 
   useEffect(() => {
     fetch(`${serverUrl}/health/filesystem`)
@@ -39,6 +50,26 @@ export function GenerationPage() {
       })
       .catch(() => {});
   }, [serverUrl]);
+
+  const checkGptSoVits = useCallback(async () => {
+    setCheckingGptSoVits(true);
+    try {
+      const normalized = gptSoVitsUrl.trim().replace(/\/$/, '');
+      if (normalized && normalized !== persistedGptSoVitsUrl) {
+        await apiClient.updateGenerationSettings({ gpt_sovits_url: normalized });
+        setGptSoVitsUrl(normalized);
+      }
+      const result = await apiClient.getGPTSoVITSHealth();
+      setGptSoVitsStatus({ connected: result.connected, detail: result.detail });
+    } catch (error) {
+      setGptSoVitsStatus({
+        connected: false,
+        detail: error instanceof Error ? error.message : 'Connection check failed',
+      });
+    } finally {
+      setCheckingGptSoVits(false);
+    }
+  }, [gptSoVitsUrl, persistedGptSoVitsUrl]);
 
   const openGenerationsFolder = useCallback(async () => {
     if (!generationsPath) return;
@@ -128,6 +159,54 @@ export function GenerationPage() {
             />
           }
         />
+
+        <SettingRow
+          title="GPT-SoVITS sidecar"
+          description="Local GPT-SoVITS API v2 endpoint. Start api_v2.py separately; Voicebox will send cloned-voice requests to this address."
+          action={
+            <span className="flex items-center gap-1.5 text-sm">
+              {gptSoVitsStatus?.connected ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4" /> Connected
+                </>
+              ) : gptSoVitsStatus ? (
+                <>
+                  <CircleAlert className="h-4 w-4" /> Offline
+                </>
+              ) : (
+                <span className="text-muted-foreground">Not checked</span>
+              )}
+            </span>
+          }
+        >
+          <div className="flex gap-2">
+            <Input
+              value={gptSoVitsUrl}
+              onChange={(event) => setGptSoVitsUrl(event.target.value)}
+              onBlur={() => {
+                const normalized = gptSoVitsUrl.trim().replace(/\/$/, '');
+                if (normalized && normalized !== persistedGptSoVitsUrl) {
+                  setGptSoVitsUrl(normalized);
+                  setGptSoVitsStatus(null);
+                  update({ gpt_sovits_url: normalized });
+                }
+              }}
+              placeholder="http://127.0.0.1:9880"
+              aria-label="GPT-SoVITS sidecar URL"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={checkGptSoVits}
+              disabled={checkingGptSoVits}
+            >
+              {checkingGptSoVits ? 'Checking…' : 'Check'}
+            </Button>
+          </div>
+          {gptSoVitsStatus?.detail && (
+            <p className="text-xs text-muted-foreground mt-2">{gptSoVitsStatus.detail}</p>
+          )}
+        </SettingRow>
 
         <SettingRow
           title={t('settings.generation.folder.title')}

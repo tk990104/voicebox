@@ -47,6 +47,7 @@ import type {
   CaptureSource,
   GenerationSettings,
   GenerationSettingsUpdate,
+  GPTSoVITSHealth,
   MCPClientBinding,
   MCPClientBindingListResponse,
   MCPClientBindingUpsert,
@@ -515,6 +516,10 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify(patch),
     });
+  }
+
+  async getGPTSoVITSHealth(): Promise<GPTSoVITSHealth> {
+    return this.request<GPTSoVITSHealth>('/settings/gpt-sovits/health');
   }
 
   // MCP bindings — per-MCP-client voice/engine/personality mapping.

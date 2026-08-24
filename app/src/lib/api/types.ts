@@ -78,7 +78,8 @@ export interface GenerationRequest {
     | 'chatterbox'
     | 'chatterbox_turbo'
     | 'tada'
-    | 'kokoro';
+    | 'kokoro'
+    | 'gpt_sovits';
   instruct?: string;
   /** When true and the profile has a personality prompt, input text is rewritten in-character before TTS. */
   personality?: boolean;
@@ -246,6 +247,13 @@ export interface GenerationSettings {
   crossfade_ms: number;
   normalize_audio: boolean;
   autoplay_on_generate: boolean;
+  gpt_sovits_url: string;
+}
+
+export interface GPTSoVITSHealth {
+  connected: boolean;
+  url: string;
+  detail: string;
 }
 
 export type GenerationSettingsUpdate = Partial<GenerationSettings>;
