@@ -44,6 +44,13 @@ class GPTSoVITSBackend:
         self.model_size = "external"
         self._loaded = False
 
+    def set_base_url(self, base_url: str) -> None:
+        """Point the adapter at a new sidecar and invalidate cached health state."""
+        normalized = base_url.rstrip("/")
+        if normalized != self.base_url:
+            self.base_url = normalized
+            self._loaded = False
+
     def is_loaded(self) -> bool:
         """Return whether the sidecar has passed a reachability check."""
         return self._loaded
