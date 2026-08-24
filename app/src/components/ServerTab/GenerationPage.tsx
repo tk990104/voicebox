@@ -54,6 +54,11 @@ export function GenerationPage() {
   const checkGptSoVits = useCallback(async () => {
     setCheckingGptSoVits(true);
     try {
+      const normalized = gptSoVitsUrl.trim().replace(/\/$/, '');
+      if (normalized && normalized !== persistedGptSoVitsUrl) {
+        await apiClient.updateGenerationSettings({ gpt_sovits_url: normalized });
+        setGptSoVitsUrl(normalized);
+      }
       const result = await apiClient.getGPTSoVITSHealth();
       setGptSoVitsStatus({ connected: result.connected, detail: result.detail });
     } catch (error) {
@@ -64,7 +69,7 @@ export function GenerationPage() {
     } finally {
       setCheckingGptSoVits(false);
     }
-  }, []);
+  }, [gptSoVitsUrl, persistedGptSoVitsUrl]);
 
   const openGenerationsFolder = useCallback(async () => {
     if (!generationsPath) return;
