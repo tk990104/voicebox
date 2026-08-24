@@ -41,6 +41,16 @@ def test_unload_model_does_not_terminate_sidecar():
     assert backend.is_loaded() is False
 
 
+def test_set_base_url_invalidates_previous_health_state():
+    backend = GPTSoVITSBackend("http://127.0.0.1:9880")
+    backend._loaded = True
+
+    backend.set_base_url("http://localhost:9881/")
+
+    assert backend.base_url == "http://localhost:9881"
+    assert backend.is_loaded() is False
+
+
 @pytest.mark.asyncio
 async def test_generate_decodes_wav_response(monkeypatch):
     import io
