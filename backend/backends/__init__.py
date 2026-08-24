@@ -215,6 +215,7 @@ TTS_ENGINES = {
     "chatterbox_turbo": "Chatterbox Turbo",
     "tada": "TADA",
     "kokoro": "Kokoro",
+    "gpt_sovits": "GPT-SoVITS",
 }
 
 LLM_ENGINES = {
@@ -363,6 +364,15 @@ def _get_non_qwen_tts_configs() -> list[ModelConfig]:
             hf_repo_id="hexgrad/Kokoro-82M",
             size_mb=350,
             languages=["en", "es", "fr", "hi", "it", "pt", "ja", "zh"],
+        ),
+        ModelConfig(
+            model_name="gpt-sovits-sidecar",
+            display_name="GPT-SoVITS (Local Sidecar)",
+            engine="gpt_sovits",
+            hf_repo_id="external://gpt-sovits",
+            model_size="external",
+            size_mb=0,
+            languages=["en", "zh", "ja", "ko"],
         ),
     ]
 
@@ -526,6 +536,14 @@ async def ensure_model_cached_or_raise(engine: str, model_size: str = "default")
     from fastapi import HTTPException
 
     backend = get_tts_backend_for_engine(engine)
+
+    if engine == "gpt_sovits":
+        try:
+            await backend.load_model("external")
+        except RuntimeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return
+
     cfg = None
     for c in get_tts_model_configs():
         if c.engine == engine and c.model_size == model_size:
@@ -708,6 +726,10 @@ def get_tts_backend_for_engine(engine: str) -> TTSBackend:
             from .qwen_custom_voice_backend import QwenCustomVoiceBackend
 
             backend = QwenCustomVoiceBackend()
+        elif engine == "gpt_sovits":
+            from .gpt_sovits_backend import GPTSoVITSBackend
+
+            backend = GPTSoVITSBackend()
         else:
             raise ValueError(f"Unknown TTS engine: {engine}. Supported: {list(TTS_ENGINES.keys())}")
 
