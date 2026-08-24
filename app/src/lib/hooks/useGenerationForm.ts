@@ -27,6 +27,7 @@ const generationSchema = z.object({
       'chatterbox_turbo',
       'tada',
       'kokoro',
+      'gpt_sovits',
     ])
     .optional(),
   personality: z.boolean().optional(),
@@ -100,7 +101,9 @@ export function useGenerationForm(options: UseGenerationFormOptions = {}) {
                   : 'tada-1b'
                 : engine === 'kokoro'
                   ? 'kokoro'
-                  : engine === 'qwen_custom_voice'
+                  : engine === 'gpt_sovits'
+                    ? 'gpt-sovits-sidecar'
+                    : engine === 'qwen_custom_voice'
                     ? `qwen-custom-voice-${data.modelSize}`
                     : `qwen-tts-${data.modelSize}`;
       const displayName =
@@ -116,7 +119,9 @@ export function useGenerationForm(options: UseGenerationFormOptions = {}) {
                   : 'TADA 1B'
                 : engine === 'kokoro'
                   ? 'Kokoro 82M'
-                  : engine === 'qwen_custom_voice'
+                  : engine === 'gpt_sovits'
+                    ? 'GPT-SoVITS (Local)'
+                    : engine === 'qwen_custom_voice'
                     ? data.modelSize === '1.7B'
                       ? 'Qwen CustomVoice 1.7B'
                       : 'Qwen CustomVoice 0.6B'
@@ -124,8 +129,12 @@ export function useGenerationForm(options: UseGenerationFormOptions = {}) {
                       ? 'Qwen TTS 1.7B'
                       : 'Qwen TTS 0.6B';
 
+      // External sidecars manage their own weights and dependencies.
+      const isExternalSidecar = engine === 'gpt_sovits';
+
       // Check if model needs downloading
       try {
+        if (isExternalSidecar) throw new Error('external-sidecar-skip');
         const modelStatus = await apiClient.getModelStatus();
         const model = modelStatus.models.find((m) => m.model_name === modelName);
 
@@ -134,7 +143,9 @@ export function useGenerationForm(options: UseGenerationFormOptions = {}) {
           setDownloadingDisplayName(displayName);
         }
       } catch (error) {
-        console.error('Failed to check model status:', error);
+        if (!(error instanceof Error && error.message === 'external-sidecar-skip')) {
+          console.error('Failed to check model status:', error);
+        }
       }
 
       const hasModelSizes =
