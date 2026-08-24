@@ -132,18 +132,17 @@ export function useGenerationForm(options: UseGenerationFormOptions = {}) {
       // External sidecars manage their own weights and dependencies.
       const isExternalSidecar = engine === 'gpt_sovits';
 
-      // Check if model needs downloading
-      try {
-        if (isExternalSidecar) throw new Error('external-sidecar-skip');
-        const modelStatus = await apiClient.getModelStatus();
-        const model = modelStatus.models.find((m) => m.model_name === modelName);
+      // Check if model needs downloading. Sidecars manage their own weights.
+      if (!isExternalSidecar) {
+        try {
+          const modelStatus = await apiClient.getModelStatus();
+          const model = modelStatus.models.find((m) => m.model_name === modelName);
 
-        if (model && !model.downloaded) {
-          setDownloadingModelName(modelName);
-          setDownloadingDisplayName(displayName);
-        }
-      } catch (error) {
-        if (!(error instanceof Error && error.message === 'external-sidecar-skip')) {
+          if (model && !model.downloaded) {
+            setDownloadingModelName(modelName);
+            setDownloadingDisplayName(displayName);
+          }
+        } catch (error) {
           console.error('Failed to check model status:', error);
         }
       }
