@@ -365,15 +365,6 @@ def _get_non_qwen_tts_configs() -> list[ModelConfig]:
             size_mb=350,
             languages=["en", "es", "fr", "hi", "it", "pt", "ja", "zh"],
         ),
-        ModelConfig(
-            model_name="gpt-sovits-sidecar",
-            display_name="GPT-SoVITS (Local Sidecar)",
-            engine="gpt_sovits",
-            hf_repo_id="external://gpt-sovits",
-            model_size="external",
-            size_mb=0,
-            languages=["en", "zh", "ja", "ko"],
-        ),
     ]
 
 
