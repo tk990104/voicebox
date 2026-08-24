@@ -108,7 +108,7 @@ class GPTSoVITSBackend:
 
     async def combine_voice_prompts(self, audio_paths, reference_texts):
         """Preserve the shared Voicebox multi-sample prompt contract."""
-        return await _combine_voice_prompts(audio_paths, reference_texts, sample_rate=32000)
+        return await _combine_voice_prompts(audio_paths, reference_texts, sample_rate=24000)
 
     async def generate(
         self,
